@@ -34,10 +34,10 @@ export function hasGeminiApiKey() {
 }
 
 /**
- * Returns the Gemini model name (default: gemini-1.5-flash).
+ * Returns the Gemini model name (default: gemini-3.8-flash).
  */
 export function getGeminiModel() {
-  return import.meta.env.VITE_GEMINI_MODEL || "gemini-1.5-flash";
+  return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
 }
 
 /**

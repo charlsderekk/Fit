@@ -152,17 +152,7 @@ export async function callGemini({
 
   if (!apiKey || apiKey.trim().length < 10) {
     const err = new Error(
-      "No Gemini API key found. Open your .env file and set VITE_GEMINI_API_KEY=AIzaSy... (get a free key at https://aistudio.google.com/app/apikey)"
-    );
-    err.isAuthError = true;
-    throw err;
-  }
-
-  // Validate key format — Gemini API keys from Google AI Studio always start with "AIzaSy"
-  if (!apiKey.startsWith("AIza")) {
-    const err = new Error(
-      `Invalid Gemini API key format. Your key starts with "${apiKey.slice(0, 6)}..." but valid Google AI Studio keys start with "AIzaSy". ` +
-      `Please get a correct key from https://aistudio.google.com/app/apikey and paste it into your .env file as VITE_GEMINI_API_KEY=AIzaSy...`
+      "No Gemini API key found. Open your .env file and set VITE_GEMINI_API_KEY to the key from https://aistudio.google.com/app/apikey."
     );
     err.isAuthError = true;
     throw err;
@@ -279,12 +269,13 @@ export async function callGemini({
     }
 
     if (status === 404) {
-      // A 404 can mean a bad/revoked key OR a bad model name — give clear guidance for both
       throw new Error(
-        `API Error 404: Either your API key is invalid/revoked, or the model "${model}" is unavailable for your key.\n\n` +
+        `Gemini API returned 404 for model "${model}": ${errorDetails}\n\n` +
+        `Check that the model is currently available for the Gemini API and your project. ` +
+        `The current model setting is VITE_GEMINI_MODEL=${model}.\n\n` +
         `• Verify your key at https://aistudio.google.com/app/apikey\n` +
-        `• Make sure it starts with "AIzaSy"\n` +
-        `• Try setting VITE_GEMINI_MODEL=gemini-2.0-flash in your .env file`
+        `• Make sure the key's project has access to the Gemini API\n` +
+        `• Try VITE_GEMINI_MODEL=gemini-3.8-flash in your .env file`
       );
     }
 

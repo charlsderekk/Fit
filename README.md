@@ -27,9 +27,10 @@ npm install
 2. Open the `.env` file in the project root:
    ```env
    VITE_GEMINI_API_KEY=your_actual_gemini_api_key_here
-   VITE_GEMINI_MODEL=gemini-1.5-flash
+   VITE_GEMINI_MODEL=gemini-3.8-flash
    ```
    *(Alternatively, you can click the "Set API Key" pill in the sidebar inside the app to paste your key directly in the browser).*
+   The app sends the key to the Gemini API for validation instead of relying on a hard-coded key prefix.
 
 ### 3. Run the Development Server
 ```bash

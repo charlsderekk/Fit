@@ -398,6 +398,20 @@
   </main>
 </div>
 
+<dialog id="reset-dialog" class="reset-dialog" aria-labelledby="reset-dialog-title" aria-describedby="reset-dialog-description">
+  <div class="reset-dialog-icon" aria-hidden="true">!</div>
+  <p class="reset-dialog-eyebrow">Start fresh</p>
+  <h2 id="reset-dialog-title">Reset your data?</h2>
+  <p id="reset-dialog-description">
+    This will permanently clear your profile, plan, workout and food logs, weight history, goals, reminders, and chat history from this device.
+  </p>
+  <p class="reset-dialog-note">Your saved Gemini API key will not be removed.</p>
+  <div class="reset-dialog-actions">
+    <button type="button" class="btn-ghost" id="btn-cancel-reset">Keep my data</button>
+    <button type="button" class="btn-danger" id="btn-confirm-reset">Reset my data</button>
+  </div>
+</dialog>
+
 <div id="toast-stack" class="toast-stack"></div>
 <script type="module" src="/src/main.js"></script>
 </body>

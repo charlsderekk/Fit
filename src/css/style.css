@@ -218,12 +218,127 @@ nav.tabs::-webkit-scrollbar { display: none; }
   background: var(--danger-bg);
 }
 
+.reset-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  margin: auto;
+  padding: 30px;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at top left, rgba(232, 85, 85, 0.1), transparent 56%),
+    var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.reset-dialog[open] {
+  animation: reset-dialog-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reset-dialog::backdrop {
+  background: rgba(3, 4, 7, 0.76);
+  backdrop-filter: blur(4px);
+}
+
+.reset-dialog-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid rgba(232, 85, 85, 0.28);
+  border-radius: 50%;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.reset-dialog-eyebrow {
+  margin-bottom: 6px;
+  color: var(--danger);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reset-dialog h2 {
+  margin-bottom: 12px;
+  font-size: 2rem;
+}
+
+.reset-dialog > p:not(.reset-dialog-eyebrow) {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.reset-dialog .reset-dialog-note {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.reset-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.reset-dialog-actions button {
+  min-height: 42px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+.reset-dialog-actions .btn-ghost {
+  background: var(--bg-card-2);
+}
+
+.reset-dialog-actions .btn-ghost:hover {
+  border-color: var(--border-light);
+  color: var(--text);
+}
+
+.btn-danger {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  border-color: #f06b6b;
+  background: #f06b6b;
+  box-shadow: 0 4px 16px rgba(232, 85, 85, 0.2);
+}
+
+.reset-dialog-actions button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@keyframes reset-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ── Main Content ───────────────────────────────────────── */
 .content {
   flex: 1;
   min-width: 0;
-  padding: 32px 40px 80px;
-  max-width: 940px;
+  width: 100%;
+  max-width: none;
+  padding: 32px clamp(24px, 3.5vw, 64px) 80px;
 }
 
 .view { display: none; }
@@ -970,15 +1085,19 @@ label {
 
   nav.tabs {
     flex-direction: row;
+    min-width: 0;
     overflow-x: auto;
     padding: 8px 10px;
     gap: 4px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .nav-section-label { display: none; }
 
   .tab-btn {
     flex-shrink: 0;
+    flex-basis: auto;
+    width: auto;
     white-space: nowrap;
     padding: 7px 12px;
     font-size: 0.82rem;
@@ -986,16 +1105,81 @@ label {
 
   .tab-btn.active::before { display: none; }
 
-  .content { padding: 20px 16px 60px; max-width: 100%; }
-  .profile-grid { grid-template-columns: 1fr; }
-  .dashboard-grid { grid-template-columns: 1fr; }
+  .sidebar-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 12px 10px;
+    border-top: 0;
+  }
+
+  .reset-btn { width: auto; }
+
+  .content {
+    padding: 24px clamp(18px, 4vw, 32px) 48px;
+    max-width: 100%;
+  }
+
   .stat-grid { grid-template-columns: 1fr 1fr; }
   .nutrition-grid { grid-template-columns: repeat(2,1fr); }
-  .chat-layout { height: calc(100vh - 220px); }
-  .sidebar-footer { display: none; }
+  .chat-layout { height: calc(100vh - 240px); height: calc(100dvh - 240px); }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .profile-grid { grid-template-columns: 1fr 1fr; }
+  .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {
+  .content { padding: 20px 14px 36px; }
+  .page-header { gap: 10px; margin-bottom: 18px; }
+  .page-header h2 { font-size: 1.75rem; }
+  .page-subtitle { font-size: 0.84rem; }
+  .view-actions { width: 100%; }
+  .view-actions button { flex: 1; justify-content: center; white-space: normal; }
+
+  .card { padding: 18px 16px; margin-bottom: 14px; }
+  .empty-state { margin: 32px auto; padding: 34px 20px; }
+  .empty-state .btn-accent { max-width: 100%; white-space: normal; }
+
+  .inline-form { flex-direction: column; align-items: stretch; }
+  .inline-form input { min-width: 0; }
+  .inline-form button { width: 100%; justify-content: center; }
+  .stacked-form { max-width: none; }
+  .profile-grid { grid-template-columns: 1fr; gap: 0; }
+  .profile-grid .full-width { grid-column: auto; }
+
+  .stat-grid { gap: 10px; }
+  .stat-card { padding: 16px; }
+  .stat-card .value { font-size: 2rem; }
+  .dashboard-grid { grid-template-columns: 1fr; gap: 12px; }
+  .chart-wrap { height: 200px; }
+  .nutrition-grid { gap: 8px; }
+  .n-item { padding: 12px 8px; }
+
+  .log-item { gap: 8px; padding: 11px 12px; }
+  .log-item .title { white-space: normal; overflow-wrap: anywhere; }
+  .small-btn { padding: 6px 9px; }
+
+  .chat-layout { height: calc(100vh - 260px); height: calc(100dvh - 260px); min-height: 300px; }
+  .chat-messages { padding: 16px 12px; }
+  .chat-msg { max-width: 92%; padding: 10px 12px; }
+  .chat-form { gap: 8px; padding: 9px; }
+  .chat-form input { min-width: 0; padding: 10px; }
+  .chat-form button { padding: 10px 12px; }
+  .chat-suggestion { padding: 7px 11px; }
+
+  .reset-dialog { padding: 24px; }
+  .reset-dialog-actions { flex-direction: column-reverse; }
+  .reset-dialog-actions button { width: 100%; }
+}
+
+@media (max-width: 360px) {
   .stat-grid { grid-template-columns: 1fr; }
-  .page-header { flex-direction: column; align-items: flex-start; }
+  .view-actions { flex-direction: column; align-items: stretch; }
+  .chat-layout { min-height: 260px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view.active { animation: none; }
+  .reset-dialog[open] { animation: none; }
 }
