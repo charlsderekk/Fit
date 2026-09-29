@@ -1,15 +1,13 @@
 /* =========================================================
-   FitAI storage layer.
-   All app data lives in localStorage under one key, as JSON.
-   No backend/database — this keeps deployment to a plain
-   static host (GitHub Pages / Netlify) simple.
+   FitAI Storage Layer
+   All app data lives in localStorage as structured JSON.
    ========================================================= */
 
-function storageKeyFor(username) {
+export function storageKeyFor(username) {
   return `fitai_state_v1_${username}`;
 }
 
-function defaultState() {
+export function defaultState() {
   return {
     profile: null,
     plan: null,
@@ -20,23 +18,31 @@ function defaultState() {
     achievements: [],
     reminders: [],
     chatHistory: [],
-    meta: { lastAdaptedAt: null, remindersNotifiedToday: {} },
+    meta: {
+      lastAdaptedAt: null,
+      remindersNotifiedToday: {},
+    },
   };
 }
 
-const State = {
+export const State = {
   data: defaultState(),
   key: null,
 
-  /* username is the logged-in account's key (from auth.js) — each
-     account gets its own isolated slice of localStorage. */
-  load(username) {
+  load(username = "local") {
     this.key = storageKeyFor(username);
     try {
       const raw = localStorage.getItem(this.key);
       if (raw) {
         const parsed = JSON.parse(raw);
-        this.data = { ...defaultState(), ...parsed };
+        this.data = {
+          ...defaultState(),
+          ...parsed,
+          meta: {
+            ...defaultState().meta,
+            ...(parsed.meta || {}),
+          },
+        };
       } else {
         this.data = defaultState();
       }
@@ -62,44 +68,46 @@ const State = {
   },
 };
 
-/* ---------- small helpers used across modules ---------- */
+/* ---------- Shared Helpers ---------- */
 
-function uid() {
+export function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function todayStr() {
+export function todayStr() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-function dateStr(d) {
+export function dateStr(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-function daysAgo(n) {
+export function daysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return dateStr(d);
 }
 
-function startOfWeekStr() {
+export function startOfWeekStr() {
   const d = new Date();
   const day = d.getDay(); // 0 = Sunday
   d.setDate(d.getDate() - day);
   return dateStr(d);
 }
 
-function isInCurrentWeek(dstr) {
+export function isInCurrentWeek(dstr) {
   return dstr >= startOfWeekStr() && dstr <= todayStr();
 }
 
-/* Consecutive-day workout streak, counting back from today or yesterday. */
-function computeWorkoutStreak(workoutLog) {
+/**
+ * Consecutive-day workout streak, counting back from today or yesterday.
+ */
+export function computeWorkoutStreak(workoutLog = []) {
   const loggedDates = new Set(workoutLog.map((w) => w.date));
   let streak = 0;
   let cursor = new Date();
 
-  // if nothing logged today, streak can still count from yesterday backward
+  // If nothing logged today, streak can still count from yesterday backward
   if (!loggedDates.has(dateStr(cursor))) {
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -111,6 +119,6 @@ function computeWorkoutStreak(workoutLog) {
   return streak;
 }
 
-function sum(arr, fn) {
+export function sum(arr = [], fn) {
   return arr.reduce((acc, item) => acc + (fn(item) || 0), 0);
 }
