@@ -33,11 +33,18 @@ export function hasGeminiApiKey() {
   return Boolean(key && key.length > 5);
 }
 
+export const FALLBACK_MODELS = [
+  "gemini-flash-latest",
+  "gemini-3.7-flash",
+  "gemini-3.5-flash",
+  "gemini-3.8-flash",
+];
+
 /**
- * Returns the Gemini model name (default: gemini-3.8-flash).
+ * Returns the Gemini model name (default: gemini-flash-latest).
  */
 export function getGeminiModel() {
-  return import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
+  return import.meta.env.VITE_GEMINI_MODEL || "gemini-flash-latest";
 }
 
 /**

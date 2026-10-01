@@ -6,7 +6,7 @@
    - Clean error handling with helpful diagnostics (401, 429, etc.)
    ========================================================= */
 
-import { getGeminiApiKey, getGeminiModel, getGeminiApiUrl } from "./config.js";
+import { getGeminiApiKey, getGeminiModel, getGeminiApiUrl, FALLBACK_MODELS } from "./config.js";
 
 /* =========================================================
    SCHEMAS FOR STRUCTURED OUTPUT
@@ -158,8 +158,11 @@ export async function callGemini({
     throw err;
   }
 
-  const model = getGeminiModel();
-  const endpoint = `${getGeminiApiUrl(model)}?key=${encodeURIComponent(apiKey)}`;
+  // Build list of candidate models starting with user configured model, followed by fallbacks
+  const configuredModel = getGeminiModel();
+  const candidateModels = Array.from(
+    new Set([configuredModel, ...(FALLBACK_MODELS || [])].filter(Boolean))
+  );
 
   // Format and sanitize contents for Gemini API
   // Gemini expects: [{ role: "user" | "model", parts: [{ text: "..." }] }]
@@ -226,77 +229,111 @@ export async function callGemini({
     }
   }
 
-  let response;
-  try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-  } catch (netErr) {
-    throw new Error(
-      `Network connection failed: ${netErr.message}. Check your internet connection.`
-    );
-  }
+  let lastError = null;
 
-  const data = await response.json().catch(() => null);
+  for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
+    const currentModel = candidateModels[mIdx];
+    const endpoint = `${getGeminiApiUrl(currentModel)}?key=${encodeURIComponent(apiKey)}`;
+    const hasNextModel = mIdx < candidateModels.length - 1;
 
-  // Robust error handling for 401, 403, 429, etc.
-  if (!response.ok) {
-    const status = response.status;
-    const errorDetails = data?.error?.message || data?.message || "Unknown error";
-
-    if (
-      status === 401 ||
-      status === 403 ||
-      errorDetails.includes("API key not valid") ||
-      errorDetails.includes("UNAUTHENTICATED") ||
-      errorDetails.includes("PERMISSION_DENIED")
-    ) {
-      const authErr = new Error(
-        `Gemini API Key rejected (Request failed with ${status}): ${errorDetails}.\n\nPlease ensure you pasted a valid key from https://aistudio.google.com/app/apikey into your .env file or Settings modal.`
-      );
-      authErr.isAuthError = true;
-      throw authErr;
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+    } catch (netErr) {
+      if (!hasNextModel) {
+        throw new Error(
+          `Network connection failed: ${netErr.message}. Check your internet connection.`
+        );
+      }
+      lastError = netErr;
+      continue;
     }
 
-    if (status === 429 || errorDetails.includes("RESOURCE_EXHAUSTED")) {
-      throw new Error(
-        "Gemini rate limit / quota exceeded. Please wait a moment and try again, or check your quota at https://aistudio.google.com"
-      );
+    const data = await response.json().catch(() => null);
+
+    // Robust error handling with automatic model fallback for 503, 429, 404
+    if (!response.ok) {
+      const status = response.status;
+      const errorDetails = data?.error?.message || data?.message || "Unknown error";
+
+      // 401/403: Key issue - abort immediately (fallback won't help invalid keys)
+      if (
+        status === 401 ||
+        status === 403 ||
+        errorDetails.includes("API key not valid") ||
+        errorDetails.includes("UNAUTHENTICATED") ||
+        errorDetails.includes("PERMISSION_DENIED")
+      ) {
+        const authErr = new Error(
+          `Gemini API Key rejected (Request failed with ${status}): ${errorDetails}.\n\nPlease ensure you pasted a valid key from https://aistudio.google.com/app/apikey into your .env file or Settings modal.`
+        );
+        authErr.isAuthError = true;
+        throw authErr;
+      }
+
+      // If server is experiencing high demand (503), rate limited (429), or model unavailable (404)
+      if (status === 503 || status === 429 || status === 404 || status >= 500) {
+        if (hasNextModel) {
+          console.warn(
+            `Gemini model "${currentModel}" returned ${status} (${errorDetails}). Seamlessly falling back to "${candidateModels[mIdx + 1]}"...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          continue;
+        }
+
+        if (status === 503) {
+          throw new Error(
+            `Gemini API Error (503): Gemini servers are currently experiencing high demand. Please try again in a few moments.`
+          );
+        }
+
+        if (status === 429 || errorDetails.includes("RESOURCE_EXHAUSTED")) {
+          throw new Error(
+            "Gemini rate limit / quota exceeded. Please wait a moment and try again, or check your quota at https://aistudio.google.com"
+          );
+        }
+
+        if (status === 404) {
+          throw new Error(
+            `Gemini API returned 404 for model "${currentModel}": ${errorDetails}\n\n` +
+            `Please check available models in your project at https://aistudio.google.com`
+          );
+        }
+      }
+
+      throw new Error(`Gemini API Error (${status}): ${errorDetails}`);
     }
 
-    if (status === 404) {
-      throw new Error(
-        `Gemini API returned 404 for model "${model}": ${errorDetails}\n\n` +
-        `Check that the model is currently available for the Gemini API and your project. ` +
-        `The current model setting is VITE_GEMINI_MODEL=${model}.\n\n` +
-        `• Verify your key at https://aistudio.google.com/app/apikey\n` +
-        `• Make sure the key's project has access to the Gemini API\n` +
-        `• Try VITE_GEMINI_MODEL=gemini-3.8-flash in your .env file`
-      );
+    // Extract candidate response text
+    const candidate = data?.candidates?.[0];
+    if (candidate?.finishReason === "SAFETY") {
+      throw new Error("The AI response was blocked by safety filters. Please refine the query.");
     }
 
-    throw new Error(`Gemini API Error (${status}): ${errorDetails}`);
+    const outputText = candidate?.content?.parts
+      ?.map((part) => part.text || "")
+      .join("");
+
+    if (outputText && outputText.trim()) {
+      return outputText.trim();
+    }
+
+    if (hasNextModel) {
+      continue;
+    }
+
+    throw new Error("The AI returned an empty response. Please try again.");
   }
 
-  // Extract candidate response text
-  const candidate = data?.candidates?.[0];
-  if (candidate?.finishReason === "SAFETY") {
-    throw new Error("The AI response was blocked by safety filters. Please refine the query.");
+  if (lastError) {
+    throw lastError;
   }
-
-  const outputText = candidate?.content?.parts
-    ?.map((part) => part.text || "")
-    .join("");
-
-  if (outputText && outputText.trim()) {
-    return outputText.trim();
-  }
-
-  throw new Error("The AI returned an empty response. Please try again.");
 }
 
 /* =========================================================
